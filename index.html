@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+    header { background: #0070f3; color: white; padding: 1rem; text-align: center; font-size: 1.5rem; }
+    #chat { max-width: 600px; margin: 1rem auto; background: white; border-radius: 8px; padding: 1rem; height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+    .message { padding: 0.75rem 1rem; border-radius: 20px; max-width: 75%; }
+    .user { background: #0070f3; color: white; align-self: flex-end; }
+    .bot { background: #eaeaea; color: #333; align-self: flex-start; }
+    #input-area { max-width: 600px; margin: 0 auto 1rem; display: flex; gap: 0.5rem; }
+    input { flex: 1; padding: 0.75rem 1rem; border-radius: 20px; border: 1px solid #ccc; font-size: 1rem; }
+    button { padding: 0.75rem 1.5rem; border: none; background: #0070f3; color: white; border-radius: 20px; font-size: 1rem; cursor: pointer; }
+    button:disabled { background: #bbb; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <header>AI Chat</header>
+  <div id="chat"></div>
+  <div id="input-area">
+    <input id="userInput" type="text" placeholder="Ask me anything..." autocomplete="off" />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function appendMessage(text, sender) {
+      const div = document.createElement('div');
+      div.className = 'message ' + sender;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = input.value.trim();
+      if (!message) return;
+      appendMessage(message, 'user');
+      input.value = '';
+      sendBtn.disabled = true;
+      appendMessage('Typing...', 'bot');
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+        chat.lastChild.remove(); // remove "Typing..."
+        if (data.error) {
+          appendMessage('Error: ' + data.error, 'bot');
+        } else {
+          appendMessage(data.reply, 'bot');
+        }
+      } catch (err) {
+        chat.lastChild.remove();
+        appendMessage('Error: ' + err.message, 'bot');
+      }
+      sendBtn.disabled = false;
+      input.focus();
+    }
+
+    sendBtn.onclick = sendMessage;
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
